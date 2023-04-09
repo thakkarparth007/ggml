@@ -63,6 +63,8 @@ std::map<std::string, int32_t> json_parse(const std::string & fname);
 //
 std::vector<gpt_vocab::id> gpt_tokenize(const gpt_vocab & vocab, const std::string & text);
 
+std::vector<gpt_vocab::id> codegen_tokenize(const gpt_vocab &vocab, const std::string & text);
+
 // load the tokens from encoder.json
 bool gpt_vocab_init(const std::string & fname, gpt_vocab & vocab);
 

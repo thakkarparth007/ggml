@@ -175,6 +175,62 @@ std::map<std::string, int32_t> json_parse(const std::string & fname) {
     return result;
 }
 
+std::vector<gpt_vocab::id>  codegen_tokenize(const gpt_vocab &vocab, const std::string & text){
+    std::vector<std::string> words;
+
+    // first split the text into words
+    {
+        std::string str = text;
+        std::string pat = R"('s|'t|'re|'ve|'m|'ll|'d| ?[[:alpha:]]+| ?[[:digit:]]+| ?[^\s[:alpha:][:digit:]]+|\s+(?!\S)|\s+)";
+
+        std::regex re(pat);
+        std::smatch m;
+
+        while (std::regex_search(str, m, re)) {
+            for (auto x : m) {
+                words.push_back(x);
+            }
+            str = m.suffix();
+        }
+    }
+
+    // find the longest tokens that form the words:
+    std::vector<gpt_vocab::id> tokens;
+    for (const auto & word : words) {
+        if (word.size() == 0) continue;
+
+        int i = 0;
+        int n = word.size();
+        while (i < n) {
+            int j = n;
+            while (j > i) {
+                auto it = vocab.token_to_id.find(word.substr(i, j-i));
+                if (it != vocab.token_to_id.end()) {
+                    tokens.push_back(it->second);
+                    i = j;
+                    break;
+                }
+                --j;
+            }
+            if (i == n) {
+                break;
+            }
+            if (j == i) {
+                auto sub = word.substr(i, 1);
+                if (vocab.token_to_id.find(sub) != vocab.token_to_id.end()) {
+                    tokens.push_back(vocab.token_to_id.at(sub));
+                } else {
+                    fprintf(stderr, "%s: unknown token '%s'\n", __func__, sub.data());
+                }
+                ++i;
+            }
+        }
+    }
+
+    return tokens;
+}
+
+
 std::vector<gpt_vocab::id> gpt_tokenize(const gpt_vocab & vocab, const std::string & text) {
     std::vector<std::string> words;
 
