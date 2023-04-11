@@ -51,7 +51,8 @@ int main(int argc, char** argv) {
     CROW_ROUTE(app, "/copilot_internal/v2/token")([](){
         //return "Hello world";
 
-        crow::json::wvalue response = {{"token","1"}, {"expires_at", 2600000000}, {"refresh_in",900}};
+        crow::json::wvalue response = {{"token","1"}, {"expires_at", static_cast<std::uint64_t>(2600000000)}, {"refresh_in",900}};
+
         crow::response res;
         res.code = 200;
         res.set_header("Content-Type", "application/json");
@@ -188,22 +189,22 @@ int main(int argc, char** argv) {
             {"text", ss.str()},
             {"index",0},
             {"finish_reason", "length"},
-            {"logprobs", NULL}
+            {"logprobs", nullptr}
         };
         crow::json::wvalue::list choices = {choice};
 
 
         crow::json::wvalue usage = {
             {"completion_tokens", n_past},
-            {"prompt_tokens", embd_inp.size()},
-            {"total_tokens", n_past + embd_inp.size()}
+            {"prompt_tokens", static_cast<std::uint64_t>(embd_inp.size())},
+            {"total_tokens", static_cast<std::uint64_t>(n_past + embd_inp.size())}
         };
 
         crow::json::wvalue response = {
             {"id", boost::lexical_cast<std::string>(uuid)},
             {"model", "codegen"},
             {"object","text_completion"},
-            {"created", std::time(NULL)},
+            {"created", static_cast<std::int64_t>(std::time(nullptr))},
             {"choices", choices },
             {"usage", usage}
         };
