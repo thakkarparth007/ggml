@@ -64,7 +64,6 @@ struct gptj_model {
 };
 
 
-
 bool gptj_model_load(const std::string & fname, gptj_model & model, gpt_vocab & vocab);
 
 bool gptj_eval(
