@@ -65,14 +65,28 @@ int main(int argc, char** argv) {
     ([&model, &vocab, &params](const crow::request& req) {
         crow::json::rvalue data = crow::json::load(req.body);
 
-        if(!data.has("prompt")){
+        if(!data.has("prompt") && !data.has("input_ids")){
             crow::response res;
             res.code = 400;
             res.set_header("Content-Type", "application/json");
-            res.body = "{\"message\":\"you must specify a prompt\"}";
+            res.body = "{\"message\":\"you must specify a prompt or input_ids\"}";
             return res;
         }
-        std::string prompt = data["prompt"].s();
+
+        // tokenize the prompt
+        std::vector<gpt_vocab::id> embd_inp;
+        if (data.has("prompt")) {
+            std::string prompt = data["prompt"].s();
+            embd_inp = ::codegen_tokenize(vocab, prompt);
+        } else {
+            crow::json::rvalue input_ids = data["input_ids"];
+            for (auto id : input_ids.lo()) {
+                embd_inp.push_back(id.i());
+            }
+        }
+
+        printf("%s: number of tokens in prompt = %zu\n", __func__, embd_inp.size());
+        printf("\n");
 
         // std::string suffix = data["suffix"].s();
         int maxTokens = 200;
@@ -96,12 +110,6 @@ int main(int argc, char** argv) {
 
 
         std::vector<float> logits;
-
-        // tokenize the prompt
-        std::vector<gpt_vocab::id> embd_inp = ::codegen_tokenize(vocab, prompt);
-
-        printf("%s: number of tokens in prompt = %zu\n", __func__, embd_inp.size());
-        printf("\n");
 
         std::vector<gpt_vocab::id> embd;
 
