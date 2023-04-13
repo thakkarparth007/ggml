@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
 
         // tokenize the prompt
         std::vector<gpt_vocab::id> embd_inp;
+        bool want_tokens = false; // whether to return tokens instead of text
         if (data.has("prompt")) {
             std::string prompt = data["prompt"].s();
             embd_inp = ::codegen_tokenize(vocab, prompt);
@@ -83,6 +84,7 @@ int main(int argc, char** argv) {
             for (auto id : input_ids.lo()) {
                 embd_inp.push_back(id.i());
             }
+            want_tokens = true; // perhaps this should be an option instead of assuming based on input_ids?
         }
 
         printf("%s: number of tokens in prompt = %zu\n", __func__, embd_inp.size());
@@ -120,6 +122,7 @@ int main(int argc, char** argv) {
     int64_t t_predict_us = 0;
     std::mt19937 rng(params.seed);
     std::stringstream ss;
+    std::vector<gpt_vocab::id> tokens; // used if want_tokens
 
     int32_t n_predict = std::min(maxTokens, model.hparams.n_ctx - (int) embd_inp.size());
 
@@ -165,9 +168,15 @@ int main(int argc, char** argv) {
             embd.push_back(id);
 
             // display text
-            for (auto id : embd) {
-                ss << vocab.id_to_token[id].c_str();
-                //printf("%s", vocab.id_to_token[id].c_str());
+            if (want_tokens) {
+                for (auto id : embd) {
+                    tokens.push_back(id);
+                }
+            } else {
+                for (auto id : embd) {
+                    ss << vocab.id_to_token[id].c_str();
+                    //printf("%s", vocab.id_to_token[id].c_str());
+                }
             }
         } else {
             // if here, it means we are still processing the input prompt
@@ -191,10 +200,15 @@ int main(int argc, char** argv) {
 
         boost::uuids::uuid uuid = boost::uuids::random_generator()();
 
+        crow::json::wvalue::list tokens_wvalue;
+        for (const auto& token : tokens) {
+            tokens_wvalue.push_back(token);
+        }
 
         // Generate a mock response based on the input parameters
         crow::json::wvalue choice = {
             {"text", ss.str()},
+            {"tokens", tokens_wvalue}, // empty if want_tokens is false
             {"index",0},
             {"finish_reason", "length"},
             {"logprobs", nullptr}
